@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Le jardin de Camélia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: one-screen game — board (SVG) + action panel; panel moves beside the board on tablets. Single light "garden" look by choice. */
+:root{
+  --bg:#fcf1f4; --paper:#ffffff; --ink:#3a2433; --muted:#86697b; --line:#ecd3dc;
+  --rose:#cf3a6c; --rose-deep:#a5254f; --rose-soft:#f8d6e2; --leaf:#3c8a57; --leaf-deep:#2a6640; --leaf-soft:#dcefe1;
+  --wood:#b47a44; --gold:#efb12f;
+  --c:#7a48c2; --d:#2b78cc; --u:#2f8a52;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;
+  -webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.1}
+.wrap{max-width:1040px;margin:0 auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:12px 22px;font-weight:800;font-size:1.05rem;transition:transform .12s}
+.btn:active{transform:scale(.96)}
+.btn-rose{background:var(--rose);color:#fff;box-shadow:0 4px 0 var(--rose-deep)}
+.btn-leaf{background:var(--leaf);color:#fff;box-shadow:0 4px 0 var(--leaf-deep)}
+.btn-ghost{background:var(--paper);border:2px solid var(--line);color:var(--ink)}
+.btn-no{background:#fff;border:3px solid var(--rose);color:var(--rose-deep)}
+.btn:disabled{opacity:.45;cursor:default}
+.small{font-size:.85rem;color:var(--muted)}
+.lock{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);font-weight:700;padding:8px 10px;border-radius:10px}
+.lock:hover{background:var(--rose-soft)}
+
+/* ---------- accueil ---------- */
+#home{display:flex;flex-direction:column;gap:22px;align-items:center;text-align:center;padding-top:10px}
+.hero{display:flex;flex-direction:column;align-items:center;gap:6px}
+.hero h1{font-size:clamp(2.1rem,7vw,3.4rem);color:var(--rose-deep);font-weight:800}
+.hero p{margin:0;color:var(--muted);font-weight:700;max-width:34ch}
+.card{background:var(--paper);border:2px solid var(--line);border-radius:22px;padding:18px;width:100%;max-width:560px}
+.card h2{font-size:1.25rem;margin-bottom:12px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice{border:3px solid var(--line);border-radius:16px;padding:14px 10px;background:var(--paper);font-weight:800;display:flex;flex-direction:column;gap:4px;align-items:center}
+.choice small{font-weight:600;color:var(--muted);font-size:.8rem}
+.choice[aria-pressed="true"]{border-color:var(--rose);background:var(--rose-soft)}
+.levels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.lvl{aspect-ratio:1;border-radius:16px;border:3px solid var(--line);background:var(--paper);font-family:var(--display);font-size:1.6rem;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.lvl small{font-family:var(--body);font-size:.62rem;color:var(--muted);font-weight:700;margin-top:4px}
+.lvl[aria-pressed="true"]{border-color:var(--rose);background:var(--rose-soft);color:var(--rose-deep)}
+.lvl:disabled{opacity:.4}
+.lvl-desc{margin:12px 0 0;font-weight:700;color:var(--muted);font-size:.92rem;min-height:1.3em}
+.p2name{margin-top:12px;display:flex;gap:8px;align-items:center;justify-content:center;font-weight:700}
+.p2name input{font:inherit;font-weight:700;border:2px solid var(--line);border-radius:12px;padding:8px 12px;width:150px}
+
+/* ---------- jeu ---------- */
+#game{display:grid;gap:14px;grid-template-columns:1fr}
+@media (min-width:820px){#game{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start}}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;grid-column:1/-1;flex-wrap:wrap}
+.topbar h1{font-size:1.5rem;color:var(--rose-deep)}
+.players{display:flex;gap:8px;flex-wrap:wrap}
+.pchip{display:flex;align-items:center;gap:6px;padding:6px 12px 6px 6px;border-radius:999px;background:var(--paper);border:2px solid var(--line);font-weight:800;font-size:.95rem}
+.pchip.on{border-color:var(--rose);box-shadow:0 0 0 3px var(--rose-soft)}
+.pchip .pos{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700}
+.boardbox{background:var(--paper);border:2px solid var(--line);border-radius:22px;padding:8px;min-width:0}
+#board{width:100%;height:auto;display:block;max-height:68vh}
+.panel{display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;min-width:0}
+.turn{font-family:var(--display);font-size:1.5rem;font-weight:800}
+.die{width:96px;height:96px;border-radius:22px;background:var(--paper);border:3px solid var(--ink);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:12px;box-shadow:0 5px 0 var(--ink)}
+.die i{width:16px;height:16px;border-radius:50%;background:var(--ink);place-self:center;visibility:hidden}
+.die i.v{visibility:visible}
+.die.roll{animation:tumble 1.3s ease-out}
+.die.done{animation:land .6s ease-out;border-color:var(--rose);box-shadow:0 5px 0 var(--rose-deep)}
+.die.done i{background:var(--rose)}
+@keyframes land{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+.dieval{font-family:var(--display);font-size:2rem;font-weight:800;color:var(--rose-deep);min-height:1.2em;line-height:1}
+@keyframes tumble{0%{transform:rotate(0) scale(1)}30%{transform:rotate(200deg) scale(1.15)}70%{transform:rotate(330deg) scale(.95)}100%{transform:rotate(360deg) scale(1)}}
+.msg{font-weight:700;color:var(--muted);max-width:36ch;min-height:2.6em}
+.legend{display:flex;gap:14px;justify-content:center;font-size:.85rem;font-weight:700;color:var(--muted);flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:4px;display:inline-block}
+
+/* ---------- carte nombre (plein écran) ---------- */
+.overlay{position:fixed;inset:0;background:rgba(58,36,51,.55);display:flex;align-items:center;justify-content:center;z-index:20;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--paper);border-radius:28px;padding:22px 20px;width:100%;max-width:560px;max-height:100%;overflow:auto;text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center;animation:pop .25s ease-out}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+.sheet{animation-duration:.45s}
+.tag{display:inline-block;padding:6px 14px;border-radius:999px;font-weight:800;font-size:.95rem}
+.tag-normal{background:var(--rose-soft);color:var(--rose-deep)}
+.tag-ladder{background:#f6e6d3;color:#7a4a1c}
+.tag-snake{background:var(--leaf-soft);color:var(--leaf-deep)}
+.bignum{display:flex;gap:6px;justify-content:center;font-family:var(--display);font-weight:800;font-size:clamp(5rem,26vw,9rem);line-height:1;font-variant-numeric:tabular-nums}
+.digit{display:flex;flex-direction:column;align-items:center}
+.digit .lab{font-family:var(--body);font-size:1rem;font-weight:800;margin-top:4px}
+.goal{font-weight:700;color:var(--muted);margin:0}
+.verdict{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.verdict .btn{min-width:150px;font-size:1.15rem;padding:14px 22px}
+.adultnote{font-size:.8rem;color:var(--muted);margin:-6px 0 0}
+.help{background:var(--bg);border-radius:18px;padding:14px;width:100%;display:flex;flex-direction:column;gap:8px}
+.decomp{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,7vw,2.3rem);font-variant-numeric:tabular-nums}
+.words{font-weight:800;font-size:1.15rem}
+.hint{font-weight:700;color:var(--muted)}
+.big-emoji{font-size:3rem;line-height:1}
+
+/* ---------- fin ---------- */
+.stars{display:flex;gap:6px;justify-content:center}
+.stars svg{width:46px;height:46px}
+
+/* ---------- espace adulte ---------- */
+#adult{display:flex;flex-direction:column;gap:16px}
+.adhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.adhead h1{font-size:1.6rem}
+.sync{font-size:.8rem;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--leaf-soft);color:var(--leaf-deep)}
+.sync.local{background:#f4ebd6;color:#7a5a12}
+.grid2{display:grid;gap:14px;grid-template-columns:1fr}
+@media (min-width:760px){.grid2{grid-template-columns:1fr 1fr}}
+.box{background:var(--paper);border:2px solid var(--line);border-radius:20px;padding:16px;min-width:0}
+.box h2{font-size:1.15rem;margin-bottom:10px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:var(--bg);border-radius:14px;padding:10px;text-align:center}
+.kpi b{display:block;font-family:var(--display);font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi span{font-size:.75rem;color:var(--muted);font-weight:700}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(0,11rem) 1fr 3.2rem;gap:8px;align-items:center;font-size:.88rem;font-weight:700}
+.bar .track{height:14px;background:var(--bg);border-radius:8px;overflow:hidden}
+.bar .fill{height:100%;border-radius:8px}
+.bar .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.nchip{background:var(--rose-soft);border-radius:12px;padding:6px 10px;font-weight:800;font-size:.9rem;display:flex;flex-direction:column;align-items:flex-start}
+.nchip small{font-weight:600;color:var(--muted);font-size:.72rem}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}
+td.num{font-variant-numeric:tabular-nums}
+.ok{color:var(--leaf-deep);font-weight:800}
+.ko{color:var(--rose-deep);font-weight:800}
+.setrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.setrow:last-child{border-bottom:0}
+.setrow label{font-weight:700}
+.setrow select,.setrow input{font:inherit;font-weight:700;border:2px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--paper)}
+.reco{background:var(--leaf-soft);color:var(--leaf-deep);border-radius:14px;padding:10px 14px;font-weight:800}
+.empty{color:var(--muted);font-weight:600}
+.pin{display:flex;flex-direction:column;gap:14px;align-items:center}
+.pindots{display:flex;gap:12px}
+.pindots i{width:18px;height:18px;border-radius:50%;border:3px solid var(--rose);display:block}
+.pindots i.f{background:var(--rose)}
+.pad{display:grid;grid-template-columns:repeat(3,64px);gap:10px}
+.pad button{height:64px;border-radius:18px;background:var(--bg);font-family:var(--display);font-size:1.6rem;font-weight:800}
+.err{color:var(--rose-deep);font-weight:800;min-height:1.3em;margin:0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- ACCUEIL -->
+  <section id="home">
+    <div class="hero">
+      <svg width="92" height="92" viewBox="0 0 100 100" aria-hidden="true"><g id="logoFlower"></g></svg>
+      <h1>Le jardin de Camélia</h1>
+      <p>Lance le dé, lis le nombre, et traverse le jardin jusqu'à la fleur d'or.</p>
+    </div>
+
+    <div class="card">
+      <h2>Comment on joue ?</h2>
+      <div class="choices">
+        <button class="choice" id="m1" aria-pressed="true">Toute seule<small>Camélia contre le jardin</small></button>
+        <button class="choice" id="m2" aria-pressed="false">À deux<small>Camélia contre un adulte</small></button>
+      </div>
+      <div class="p2name" id="p2wrap" hidden>
+        <label for="p2">Adversaire :</label><input id="p2" maxlength="14" value="Nesita">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Choisis ton niveau</h2>
+      <div class="levels" id="levels"></div>
+      <p class="lvl-desc" id="lvlDesc"></p>
+    </div>
+
+    <button class="btn btn-rose" id="start" style="font-size:1.3rem;padding:16px 40px">C'est parti !</button>
+    <button class="lock" id="toAdult1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Espace adulte</button>
+  </section>
+
+  <!-- JEU -->
+  <section id="game" hidden>
+    <div class="topbar">
+      <h1>Le jardin de Camélia</h1>
+      <div class="players" id="pchips"></div>
+      <button class="lock" id="quit">Quitter la partie</button>
+    </div>
+    <div class="boardbox"><svg id="board" viewBox="0 0 500 600" role="img" aria-label="Plateau du jeu"></svg></div>
+    <div class="panel">
+      <div class="turn" id="turnName"></div>
+      <div class="die" id="die" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="dieval" id="dieval" aria-live="polite"></div>
+      <button class="btn btn-rose" id="roll" style="font-size:1.25rem;padding:16px 34px">Lancer le dé</button>
+      <div class="msg" id="msg" aria-live="polite"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--wood)"></i>Échelle : lis bien pour grimper</span>
+        <span><i class="sw" style="background:var(--leaf)"></i>Serpent : lis bien pour lui échapper</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ESPACE ADULTE -->
+  <section id="adult" hidden></section>
+</div>
+
+<div class="overlay" id="ov" hidden><div class="sheet" id="sheet"></div></div>
+
+<script>
+/* ================= données & stockage ================= */
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+let settings = Object.assign({maxLevel:1, level:1, p2:'Nesita', colors:'auto', mode:1}, LS.get('jdc.settings', {}));
+let sessions = LS.get('jdc.sessions', []);   // [{id,startedAt,level,mode,attempts:[{n,ok,kind,t}],finished,won}]
+/* ====== Google Sheets ====== */
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx7n3SDnu94G8K2KjlmIbkNJR2n3upEzZNKwna51namqcPZhFRDc4ctC0y86eplPAqL/exec';
+const sheetOn = () => /^https:\/\/script\.google\.com\//.test(SHEET_URL);
+let online = false;
+let pending = LS.get('jdc.pending', []);
+function post(body){
+  return fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+}
+let flushing=false;
+async function flush(){
+  if(!sheetOn() || flushing || !pending.length) return;
+  flushing=true;
+  const batch=pending.slice(0,60);
+  try{ await post({type:'attempts',items:batch}); pending=pending.slice(batch.length); LS.set('jdc.pending',pending); }catch(e){}
+  flushing=false;
+  if(pending.length && navigator.onLine!==false) setTimeout(flush,4000);
+}
+window.addEventListener('online',flush);
+const saveSettings = () => {
+  LS.set('jdc.settings', settings);
+  if(sheetOn()) post({type:'settings',settings:{maxLevel:settings.maxLevel,colors:settings.colors,p2:settings.p2}}).catch(()=>{});
+};
+const saveSession = (s) => {
+  const i = sessions.findIndex(x=>x.id===s.id); if(i<0) sessions.push(s); else sessions[i]=s;
+  LS.set('jdc.sessions', sessions.slice(-200));
+};
+function queueAttempt(s,a){
+  pending.push({id:s.id+'-'+s.attempts.length, session:s.id, level:s.level, mode:s.mode, n:a.n, ok:a.ok, kind:a.kind, t:a.t, words:words(a.n)});
+  LS.set('jdc.pending',pending); flush();
+}
+async function loadSheet(){
+  if(!sheetOn()) return;
+  try{
+    const r = await fetch(SHEET_URL+'?t='+Date.now());
+    const data = await r.json();
+    if(!data.ok) return;
+    online = true;
+    const st = data.settings||{};
+    if(st.code) LS.set('jdc.code', String(st.code));
+    ['maxLevel','colors','p2'].forEach(k=>{ if(st[k]!==undefined && st[k]!=='') settings[k]=st[k]; });
+    settings.maxLevel=Number(settings.maxLevel)||1;
+    LS.set('jdc.settings',settings); renderLevels();
+    const map = new Map(sessions.map(s=>[s.id,s]));
+    const groups = {};
+    (data.attempts||[]).forEach(a=>{ (groups[a.session] = groups[a.session] || {id:a.session, startedAt:a.t, level:a.level, mode:a.mode, attempts:[]}).attempts.push({n:a.n,ok:a.ok,kind:a.kind,t:a.t}); });
+    Object.values(groups).forEach(g=>{ g.attempts.sort((x,y)=>x.t-y.t); g.startedAt=g.attempts[0].t; const loc=map.get(g.id); if(!loc || g.attempts.length >= (loc.attempts||[]).length) map.set(g.id, Object.assign({}, loc||{}, g)); });
+    sessions = [...map.values()].sort((a,b)=>a.startedAt-b.startedAt);
+    LS.set('jdc.sessions', sessions.slice(-200));
+    if(!document.getElementById('adult').hidden && adultUnlocked) renderAdult();
+  }catch(e){ online=false; }
+}
+
+/* ================= nombres en lettres (orthographe rectifiée) ================= */
+const U = ['zéro','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];
+const T = {2:'vingt',3:'trente',4:'quarante',5:'cinquante',6:'soixante'};
+function w2(n){
+  if(n<20) return U[n];
+  const t=Math.floor(n/10), u=n%10;
+  if(t<=6){ const b=T[t]; return u===0?b:(u===1?b+'-et-un':b+'-'+U[u]); }
+  if(t===7) return 'soixante-'+(u===1?'et-onze':U[10+u]);
+  if(t===8) return u===0?'quatre-vingts':'quatre-vingt-'+U[u];
+  return 'quatre-vingt-'+U[10+u];
+}
+function words(n){
+  if(n<100) return w2(n);
+  const c=Math.floor(n/100), r=n%100, head = c===1?'cent':U[c]+'-cent';
+  return r===0 ? (c>1?head+'s':head) : head+'-'+w2(r);
+}
+function hintFor(n){
+  const r=n%100, t=Math.floor(r/10), u=r%10;
+  if(t===7) return 'Pour '+r+' : on dit soixante + '+U[10+u]+'.';
+  if(t===8) return 'Pour '+r+' : quatre fois vingt'+(u?' + '+U[u]:'')+'.';
+  if(t===9) return 'Pour '+r+' : on dit quatre-vingt + '+U[10+u]+'.';
+  if(n>=100) return 'Lis d\'abord les centaines, puis les deux derniers chiffres.';
+  return '';
+}
+function decomp(n){
+  const c=Math.floor(n/100), d=Math.floor(n%100/10), u=n%10, parts=[];
+  if(c) parts.push('<span style="color:var(--c)">'+c*100+'</span>');
+  if(d) parts.push('<span style="color:var(--d)">'+d*10+'</span>');
+  if(u || parts.length===0) parts.push('<span style="color:var(--u)">'+u+'</span>');
+  return n+' = '+parts.join(' + ');
+}
+
+/* ================= niveaux & tirage ================= */
+const LEVELS = [
+  {n:1, name:'Jusqu\'à 69', desc:'Nombres jusqu\'à 69. Sur les échelles et serpents : de 60 à 79.', help:true},
+  {n:2, name:'70 à 99', desc:'Jusqu\'à 99, avec beaucoup de 70, 80 et 90.', help:true},
+  {n:3, name:'Centaines', desc:'Les centaines rondes et de 100 à 199. Pièges : 170 à 199.', help:true},
+  {n:4, name:'3 chiffres', desc:'Tous les nombres à 3 chiffres. Pièges : 70 à 99 cachés dedans (397, 584…).', help:false},
+  {n:5, name:'Les zéros', desc:'Les nombres avec des zéros (305, 470, 800) et tous les pièges mélangés.', help:false}
+];
+const ri = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const pick = a => a[Math.floor(Math.random()*a.length)];
+function genNormal(L){
+  const p=Math.random();
+  switch(L){
+    case 1: return p<.7 ? ri(20,69) : ri(1,19);
+    case 2: return p<.55 ? ri(70,99) : ri(1,69);
+    case 3: return p<.4 ? ri(100,199) : p<.6 ? ri(1,9)*100 : p<.8 ? ri(70,99) : ri(1,69);
+    case 4: return p<.8 ? ri(1,9)*100+ri(1,9)*10+ri(1,9) : ri(20,99);
+    default:{
+      if(p<.65){ const c=ri(1,9), k=ri(0,2); return k===0? c*100+ri(1,9) : k===1? c*100+ri(1,9)*10 : c*100; }
+      return p<.85 ? ri(101,999) : ri(70,99);
+    }
+  }
+}
+function genSpecial(L){
+  switch(L){
+    case 1: return ri(60,79);
+    case 2: return Math.random()<.7 ? pick([7,9])*10+ri(0,9) : ri(80,89);
+    case 3: return Math.random()<.6 ? ri(170,199) : ri(2,9)*100+ri(70,99);
+    case 4: return ri(1,9)*100+ri(7,9)*10+ri(1,9);
+    default:{ const c=ri(1,9); return pick([c*100+ri(7,9)*10, c*100+ri(1,9), c*100+ri(80,99), c*100+ri(70,79), c*100]); }
+  }
+}
+let recent=[];
+function draw(L, special){
+  let n, guard=0;
+  do{ n = special ? genSpecial(L) : genNormal(L); guard++; } while(recent.includes(n) && guard<30);
+  recent.push(n); if(recent.length>10) recent.shift();
+  return n;
+}
+function useColors(L){ return settings.colors==='on' || (settings.colors==='auto' && LEVELS[L-1].help); }
+
+/* ================= plateau ================= */
+const SIZE=30, COLS=5, ROWS=6;
+const LADDERS={3:12, 8:17, 14:23, 19:27};
+const SNAKES={16:6, 22:11, 28:18};
+function cellXY(n){ // centre de la case n (1..30)
+  const r=Math.floor((n-1)/COLS), i=(n-1)%COLS, col = r%2===0 ? i : COLS-1-i;
+  return {x:col*100+50, y:(ROWS-1-r)*100+50};
+}
+const NS='http://www.w3.org/2000/svg';
+const el=(tag,attrs,parent)=>{ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; };
+function flower(g, cx, cy, r, petal, heart){
+  for(let i=0;i<6;i++){ const a=i*Math.PI/3; el('ellipse',{cx:cx+Math.cos(a)*r*.55, cy:cy+Math.sin(a)*r*.55, rx:r*.5, ry:r*.38, transform:`rotate(${i*60} ${cx+Math.cos(a)*r*.55} ${cy+Math.sin(a)*r*.55})`, fill:petal},g); }
+  el('circle',{cx,cy,r:r*.36,fill:heart},g);
+}
+function buildBoard(){
+  const s=document.getElementById('board'); s.innerHTML='';
+  const cells=el('g',{},s);
+  for(let n=1;n<=SIZE;n++){
+    const {x,y}=cellXY(n), r=Math.floor((n-1)/COLS);
+    const fill = n===SIZE ? '#fdecc4' : LADDERS[n] ? '#f6e6d3' : SNAKES[n] ? '#dcefe1' : ((r+((n-1)%COLS))%2 ? '#fbe3eb' : '#ffffff');
+    el('rect',{x:x-50+2,y:y-50+2,width:96,height:96,rx:14,fill,stroke:'#ecd3dc','stroke-width':2},cells);
+    const t=el('text',{x:x-38,y:y-28,'font-family':'Baloo 2, sans-serif','font-weight':800,'font-size':20,fill:'#86697b'},cells); t.textContent=n;
+  }
+  // fleur d'arrivée
+  const f=cellXY(SIZE); flower(cells,f.x+8,f.y+10,26,'#efb12f','#cf3a6c');
+  // échelles
+  const lad=el('g',{},s);
+  for(const a in LADDERS){
+    const A=cellXY(+a), B=cellXY(LADDERS[a]); const dx=B.x-A.x, dy=B.y-A.y, L=Math.hypot(dx,dy), nx=-dy/L*13, ny=dx/L*13;
+    el('line',{x1:A.x+nx,y1:A.y+ny,x2:B.x+nx,y2:B.y+ny,stroke:'#b47a44','stroke-width':7,'stroke-linecap':'round'},lad);
+    el('line',{x1:A.x-nx,y1:A.y-ny,x2:B.x-nx,y2:B.y-ny,stroke:'#b47a44','stroke-width':7,'stroke-linecap':'round'},lad);
+    for(let d=18; d<L-8; d+=22){ const px=A.x+dx*d/L, py=A.y+dy*d/L; el('line',{x1:px+nx,y1:py+ny,x2:px-nx,y2:py-ny,stroke:'#8a5a2c','stroke-width':5,'stroke-linecap':'round'},lad); }
+  }
+  // serpents
+  const sn=el('g',{},s);
+  for(const a in SNAKES){
+    const H=cellXY(+a), Tl=cellXY(SNAKES[a]); const dx=Tl.x-H.x, dy=Tl.y-H.y, L=Math.hypot(dx,dy), nx=-dy/L, ny=dx/L;
+    let d=`M ${H.x} ${H.y}`; const steps=24;
+    for(let i=1;i<=steps;i++){ const t=i/steps, w=Math.sin(t*Math.PI*3)*16*(1-t*.5); d+=` L ${H.x+dx*t+nx*w} ${H.y+dy*t+ny*w}`; }
+    el('path',{d,fill:'none',stroke:'#2a6640','stroke-width':15,'stroke-linecap':'round','stroke-linejoin':'round'},sn);
+    el('path',{d,fill:'none',stroke:'#58a872','stroke-width':9,'stroke-linecap':'round','stroke-linejoin':'round','stroke-dasharray':'2 10'},sn);
+    el('circle',{cx:H.x,cy:H.y,r:15,fill:'#3c8a57',stroke:'#2a6640','stroke-width':3},sn);
+    el('circle',{cx:H.x-5,cy:H.y-4,r:3.6,fill:'#fff'},sn); el('circle',{cx:H.x+5,cy:H.y-4,r:3.6,fill:'#fff'},sn);
+    el('circle',{cx:H.x-5,cy:H.y-4,r:1.8,fill:'#3a2433'},sn); el('circle',{cx:H.x+5,cy:H.y-4,r:1.8,fill:'#3a2433'},sn);
+    el('path',{d:`M ${H.x-4} ${H.y+7} q 4 4 8 0`,stroke:'#cf3a6c','stroke-width':2.5,fill:'none','stroke-linecap':'round'},sn);
+  }
+  // pions
+  const pw=el('g',{},s);
+  players.forEach((p,i)=>{
+    const g=el('g',{class:'pawn',style:'transition:transform .5s ease'},pw);
+    el('circle',{cx:0,cy:4,r:21,fill:'rgba(58,36,51,.18)'},g);
+    if(i===0){ flower(g,0,0,20,'#cf3a6c','#efb12f'); }
+    else { el('circle',{cx:0,cy:0,r:18,fill:'#2b78cc',stroke:'#fff','stroke-width':3},g); const t=el('text',{x:0,y:7,'text-anchor':'middle','font-family':'Baloo 2, sans-serif','font-weight':800,'font-size':20,fill:'#fff'},g); t.textContent=(p.name[0]||'A').toUpperCase(); }
+    p.node=g;
+  });
+  placePawns();
+}
+function pawnPos(i,cell){
+  const c = cell<1 ? {x:cellXY(1).x-6, y:cellXY(1).y+22} : cellXY(cell);
+  const shared = players.length>1 && players[0].pos===players[1].pos;
+  const off = shared ? (i===0?-17:17) : 0;
+  return {x:c.x+off+(cell<1?0:6), y:c.y+(cell<1?0:8)};
+}
+function placePawns(){ players.forEach((p,i)=>{ const q=pawnPos(i,p.pos); p.node.style.transform=`translate(${q.x}px,${q.y}px)`; }); }
+document.getElementById('logoFlower') && flower(document.getElementById('logoFlower'),50,50,44,'#cf3a6c','#efb12f');
+
+/* ================= état de partie ================= */
+let players=[], cur=0, level=1, session=null, busy=false;
+const $=id=>document.getElementById(id);
+const wait=ms=>new Promise(r=>setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms));
+
+function renderLevels(){
+  const box=$('levels'); box.innerHTML='';
+  if(settings.level>settings.maxLevel) settings.level=settings.maxLevel;
+  LEVELS.forEach(L=>{
+    const b=document.createElement('button'); b.className='lvl'; b.id='lvl'+L.n;
+    b.innerHTML=L.n+'<small>'+(L.n<=settings.maxLevel?L.name:'fermé')+'</small>';
+    b.disabled = L.n>settings.maxLevel; b.setAttribute('aria-pressed', String(L.n===settings.level));
+    b.onclick=()=>{ settings.level=L.n; LS.set('jdc.settings',settings); renderLevels(); };
+    box.appendChild(b);
+  });
+  $('lvlDesc').textContent = LEVELS[settings.level-1].desc;
+  setMode(settings.mode||1, true);
+}
+function setMode(m, silent){ settings.mode=m; $('m1').setAttribute('aria-pressed',String(m===1)); $('m2').setAttribute('aria-pressed',String(m===2)); $('p2wrap').hidden = m!==2; $('p2').value=settings.p2; if(!silent) LS.set('jdc.settings',settings); }
+$('m1').onclick=()=>setMode(1); $('m2').onclick=()=>setMode(2);
+$('p2').oninput=e=>{ settings.p2=e.target.value.trim()||'Adulte'; LS.set('jdc.settings',settings); };
+
+function show(id){ ['home','game','adult'].forEach(x=>$(x).hidden = x!==id); window.scrollTo(0,0); }
+
+$('start').onclick=()=>{
+  level=settings.level;
+  players=[{name:'Camélia',pos:0}];
+  if(settings.mode===2) players.push({name:settings.p2||'Adulte',pos:0});
+  cur=0; recent=[];
+  session={id:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), startedAt:Date.now(), level, mode:settings.mode, attempts:[], finished:false, won:null};
+  saveSession(session);
+  buildBoard(); renderChips(); show('game');
+  $('msg').textContent='Lance le dé pour commencer !'; setDie(1);
+};
+$('quit').onclick=()=>{ if(busy) return; closeOv(); show('home'); };
+
+function renderChips(){
+  $('pchips').innerHTML = players.map((p,i)=>`<div class="pchip ${i===cur?'on':''}"><svg width="28" height="28" viewBox="-22 -22 44 44">${i===0?'<g id="chipF"></g>':`<circle r="18" fill="#2b78cc"/><text y="7" text-anchor="middle" font-family="Baloo 2,sans-serif" font-weight="800" font-size="20" fill="#fff">${(p.name[0]||'A').toUpperCase()}</text>`}</svg>${esc(p.name)} <span class="pos">case ${p.pos}</span></div>`).join('');
+  const g=$('chipF'); if(g) flower(g,0,0,20,'#cf3a6c','#efb12f');
+  $('turnName').textContent = 'À '+(cur===0?'toi, Camélia':players[cur].name)+' !';
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function setDie(v){ [...$('die').children].forEach((d,i)=>d.classList.toggle('v',PIPS[v].includes(i))); }
+
+$('roll').onclick=async()=>{
+  if(busy) return; busy=true; $('roll').disabled=true;
+  const die=$('die'); die.classList.remove('roll','done'); $('dieval').textContent=''; void die.offsetWidth; die.classList.add('roll');
+  for(let i=0;i<9;i++){ setDie(ri(1,6)); await wait(145); }
+  const v=ri(1,6); setDie(v); die.classList.remove('roll'); void die.offsetWidth; die.classList.add('done');
+  const p=players[cur], target=Math.min(SIZE,p.pos+v);
+  $('dieval').textContent=v;
+  $('msg').textContent=`${cur===0?'Tu as':p.name+' a'} fait ${v} !`;
+  await wait(1800);
+  const n=draw(level,false);
+  const ok=await askNumber(n,'normal',`Si c'est bien lu : tu avances jusqu'à la case ${target}.`);
+  log(n,ok,'normal');
+  if(!ok){ $('msg').textContent='Pas encore… tu restes sur ta case.'; return endTurn(); }
+  await walk(p,target);
+  if(p.pos>=SIZE) return win(cur);
+  if(LADDERS[p.pos]){
+    const n2=draw(level,true);
+    const ok2=await askNumber(n2,'ladder',`Une échelle ! Si c'est bien lu, tu grimpes jusqu'à la case ${LADDERS[p.pos]}.`);
+    log(n2,ok2,'echelle');
+    if(ok2){ await slide(p,LADDERS[p.pos]); $('msg').textContent='Hop, en haut de l\'échelle !'; } else $('msg').textContent='Tu restes en bas de l\'échelle.';
+  } else if(SNAKES[p.pos]){
+    const n2=draw(level,true);
+    const ok2=await askNumber(n2,'snake',`Un serpent ! Si c'est bien lu, tu lui échappes. Sinon, tu glisses jusqu'à la case ${SNAKES[p.pos]}.`);
+    log(n2,ok2,'serpent');
+    if(!ok2){ await slide(p,SNAKES[p.pos]); $('msg').textContent='Oh non, le serpent t\'a fait glisser !'; } else $('msg').textContent='Bravo, le serpent n\'a rien pu faire !';
+  } else $('msg').textContent=`${cur===0?'Tu es':p.name+' est'} sur la case ${p.pos}.`;
+  endTurn();
+};
+async function walk(p,target){ await wait(300); while(p.pos<target){ p.pos++; placePawns(); renderChips(); $('msg').textContent='Case '+p.pos+'…'; await wait(650); } await wait(500); }
+async function slide(p,to){ await wait(400); p.node.style.transition='transform 1.8s ease-in-out'; p.pos=to; placePawns(); renderChips(); await wait(1900); p.node.style.transition='transform .5s ease'; await wait(400); }
+async function endTurn(){ await wait(1200); cur=(cur+1)%players.length; $('dieval').textContent=''; $('die').classList.remove('done'); renderChips(); busy=false; $('roll').disabled=false; }
+function log(n,ok,kind){ if(cur!==0) return; const a={n,ok,kind,t:Date.now()}; session.attempts.push(a); saveSession(session); queueAttempt(session,a); }
+
+/* ================= carte nombre ================= */
+const ov=$('ov'), sheet=$('sheet');
+function closeOv(){ ov.hidden=true; sheet.innerHTML=''; }
+function numberHTML(n,colors){
+  const s=String(n), labs = s.length===3?['C','D','U']:s.length===2?['D','U']:['U'];
+  const cols={C:'var(--c)',D:'var(--d)',U:'var(--u)'};
+  return '<div class="bignum">'+[...s].map((d,i)=>`<span class="digit" style="color:${colors?cols[labs[i]]:'var(--ink)'}">${d}${colors?`<span class="lab">${labs[i]}</span>`:''}</span>`).join('')+'</div>';
+}
+function askNumber(n,kind,goal){
+  return new Promise(res=>{
+    const tag = kind==='ladder'?'<span class="tag tag-ladder">Case échelle</span>':kind==='snake'?'<span class="tag tag-snake">Case serpent</span>':'<span class="tag tag-normal">'+(cur===0?'Lis ce nombre, Camélia':'À '+esc(players[cur].name)+' de lire')+'</span>';
+    sheet.innerHTML = `${tag}${numberHTML(n,useColors(level))}<p class="goal">${goal}</p>
+      <div class="verdict"><button class="btn btn-leaf" id="yes">Bien lu</button><button class="btn btn-no" id="no">Pas encore</button></div>
+      <p class="adultnote">C'est l'adulte qui appuie.</p>`;
+    ov.hidden=false; $('yes').focus();
+    $('yes').onclick=async()=>{ sheet.innerHTML=`<div class="big-emoji" aria-hidden="true">${starSVG(56)}</div><h2 style="font-size:2rem;color:var(--leaf-deep)">Bravo !</h2><p class="words">${words(n)}</p>`; await wait(1800); closeOv(); await wait(300); res(true); };
+    $('no').onclick=()=>{
+      const h=hintFor(n);
+      sheet.innerHTML = `<h2 style="font-size:1.6rem;color:var(--rose-deep)">On regarde ensemble</h2>${numberHTML(n,true)}
+        <div class="help"><div class="decomp">${decomp(n)}</div><div class="words">${words(n)}</div>${h?`<div class="hint">${h}</div>`:''}</div>
+        <button class="btn btn-rose" id="go">J'ai compris</button>`;
+      $('go').focus(); $('go').onclick=()=>{ closeOv(); res(false); };
+    };
+  });
+}
+function starSVG(s,fill){ return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.5l1.3-6.6L2.5 9.3l6.6-.8z" fill="${fill||'#efb12f'}" stroke="#c78b12" stroke-width="1"/></svg>`; }
+
+function win(i){
+  session.finished=true; session.won = i===0; saveSession(session);
+  const a=session.attempts, ok=a.filter(x=>x.ok).length, rate=a.length?ok/a.length:0;
+  const stars = rate>=.85?3:rate>=.6?2:1;
+  const who = i===0 ? 'Camélia a traversé le jardin !' : esc(players[i].name)+' arrive en premier… la revanche ?';
+  sheet.innerHTML = `<div class="stars">${[0,1,2].map(k=>starSVG(46,k<stars?'#efb12f':'#f1e4e9')).join('')}</div>
+    <h2 style="font-size:1.9rem;color:var(--rose-deep)">${who}</h2>
+    <p class="words">Nombres bien lus : ${ok} sur ${a.length}</p>
+    <div class="verdict"><button class="btn btn-rose" id="again">Rejouer</button><button class="btn btn-ghost" id="home2">Accueil</button></div>`;
+  ov.hidden=false;
+  $('again').onclick=()=>{ closeOv(); busy=false; $('roll').disabled=false; $('start').onclick(); };
+  $('home2').onclick=()=>{ closeOv(); busy=false; $('roll').disabled=false; show('home'); };
+}
+
+/* ================= espace adulte ================= */
+let adultUnlocked=false;
+const getCode=()=>LS.get('jdc.code','1234');
+$('toAdult1').onclick=()=>{ adultUnlocked=false; show('adult'); renderPin(); loadSheet(); };
+function renderPin(){
+  let entry='';
+  const A=$('adult');
+  A.innerHTML=`<div class="adhead"><h1>Espace adulte</h1><button class="btn btn-ghost" id="back">Retour au jeu</button></div>
+    <div class="box pin"><p style="margin:0;font-weight:700">Tape le code (4 chiffres)</p><div class="pindots" id="dots">${'<i></i>'.repeat(4)}</div>
+    <div class="pad" id="pad">${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>k===''?'<span></span>':`<button data-k="${k}" aria-label="${k==='⌫'?'Effacer':k}">${k}</button>`).join('')}</div>
+    <p class="err" id="perr"></p><p class="small" style="margin:0">Code de départ : 1234. Tu pourras le changer à l'intérieur.</p></div>`;
+  $('back').onclick=()=>show('home');
+  const upd=()=>[...$('dots').children].forEach((d,i)=>d.classList.toggle('f',i<entry.length));
+  $('pad').onclick=e=>{
+    const k=e.target.closest('button')?.dataset.k; if(k===undefined) return;
+    if(k==='⌫'){ entry=entry.slice(0,-1); upd(); return; }
+    if(entry.length<4){ entry+=k; upd(); }
+    if(entry.length===4){ if(entry===getCode()){ adultUnlocked=true; renderAdult(); } else { $('perr').textContent='Ce n\'est pas le bon code.'; entry=''; setTimeout(upd,250); } }
+  };
+}
+function tagsOf(n){
+  if(n<70) return ['Jusqu\'à 69'];
+  if(n<80) return ['70 à 79'];
+  if(n<90) return ['80 à 89'];
+  if(n<100) return ['90 à 99'];
+  const t=[], d=Math.floor(n%100/10), u=n%10;
+  t.push(n%100===0?'Centaines rondes':'3 chiffres');
+  if(n%100!==0 && (d===0||u===0)) t.push('3 chiffres avec un zéro');
+  if(d>=7) t.push('3 chiffres avec 70 à 99');
+  return t;
+}
+const TAG_ORDER=['Jusqu\'à 69','70 à 79','80 à 89','90 à 99','Centaines rondes','3 chiffres','3 chiffres avec un zéro','3 chiffres avec 70 à 99'];
+const fmtDate=t=>new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' '+new Date(t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+const pct=x=>Math.round(x*100)+' %';
+const rateColor=r=>r>=.8?'var(--leaf)':r>=.6?'var(--gold)':'var(--rose)';
+
+function renderAdult(){
+  const A=$('adult');
+  const played=sessions.filter(s=>(s.attempts||[]).length);
+  const all=played.flatMap(s=>s.attempts.map(a=>Object.assign({lvl:s.level},a)));
+  const ok=all.filter(a=>a.ok).length;
+  // par catégorie
+  const cat={}; all.forEach(a=>tagsOf(a.n).forEach(t=>{ cat[t]=cat[t]||{ok:0,n:0}; cat[t].n++; if(a.ok) cat[t].ok++; }));
+  const catHTML = TAG_ORDER.filter(t=>cat[t]).map(t=>{ const r=cat[t].ok/cat[t].n; return `<div class="bar"><span>${t} <span class="small">(${cat[t].n})</span></span><div class="track"><div class="fill" style="width:${r*100}%;background:${rateColor(r)}"></div></div><span class="val">${pct(r)}</span></div>`; }).join('') || '<p class="empty">Rien encore : les résultats apparaîtront après la première partie.</p>';
+  // nombres qui coincent
+  const miss={}; all.filter(a=>!a.ok).forEach(a=>miss[a.n]=(miss[a.n]||0)+1);
+  const top=Object.entries(miss).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const missHTML = top.length ? '<div class="chips">'+top.map(([n,c])=>`<span class="nchip">${n} ${c>1?'<span class="ko">×'+c+'</span>':''}<small>${words(+n)}</small></span>`).join('')+'</div>' : '<p class="empty">Aucune erreur enregistrée pour l\'instant.</p>';
+  // progression par séance
+  const last=played.slice(-12);
+  const W=520,H=170,pad=28,bw=(W-pad*2)/Math.max(last.length,1);
+  const chart = last.length ? `<svg viewBox="0 0 ${W} ${H+28}" width="100%" role="img" aria-label="Réussite par partie">
+    ${[0,.5,1].map(v=>`<line x1="${pad}" x2="${W-pad}" y1="${10+H-v*H}" y2="${10+H-v*H}" stroke="#ecd3dc" stroke-width="1"/><text x="${pad-6}" y="${14+H-v*H}" text-anchor="end" font-size="11" fill="#86697b">${v*100}%</text>`).join('')}
+    ${last.map((s,i)=>{ const a=s.attempts, r=a.filter(x=>x.ok).length/a.length, h=Math.max(3,r*H); return `<rect x="${pad+i*bw+bw*.18}" y="${10+H-h}" width="${bw*.64}" height="${h}" rx="5" fill="${r>=.8?'#3c8a57':r>=.6?'#efb12f':'#cf3a6c'}"/><text x="${pad+i*bw+bw/2}" y="${H+26}" text-anchor="middle" font-size="11" fill="#86697b">N${s.level}</text>`; }).join('')}
+  </svg>` : '<p class="empty">Le graphique apparaîtra après la première partie.</p>';
+  // recommandation
+  const atMax=all.filter(a=>a.lvl===settings.maxLevel).slice(-20);
+  const rMax=atMax.length?atMax.filter(a=>a.ok).length/atMax.length:0;
+  const reco = settings.maxLevel<5 && atMax.length>=20 && rMax>=.8 ? `<div class="reco">Sur les 20 derniers nombres du niveau ${settings.maxLevel}, elle a ${pct(rMax)} de réussite : elle est prête pour le niveau ${settings.maxLevel+1}.</div>` : '';
+  // historique
+  const hist = played.slice(-15).reverse().map(s=>{ const a=s.attempts, o=a.filter(x=>x.ok).length; const fails=a.filter(x=>!x.ok).map(x=>x.n); return `<tr><td>${fmtDate(s.startedAt)}</td><td class="num">${s.level}</td><td>${s.mode===2?'À deux':'Seule'}</td><td class="num">${o} / ${a.length}</td><td>${fails.length?fails.join(', '):'<span class="ok">aucune</span>'}</td></tr>`; }).join('');
+
+  A.innerHTML=`<div class="adhead"><h1>Les progrès de Camélia</h1><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sync ${online?'':'local'}">${online?'Synchronisé avec Google Sheets':(sheetOn()?'Hors ligne : envoi plus tard':'Enregistré sur cet appareil')}</span>${pending.length?`<span class="small">${pending.length} lecture(s) en attente d'envoi</span>`:''}<button class="btn btn-ghost" id="back">Retour au jeu</button></div></div>
+  ${reco}
+  <div class="grid2">
+    <div class="box"><h2>En résumé</h2><div class="kpis">
+      <div class="kpi"><b>${played.length}</b><span>parties</span></div>
+      <div class="kpi"><b>${all.length}</b><span>nombres lus</span></div>
+      <div class="kpi"><b style="color:${all.length?rateColor(ok/all.length):'var(--ink)'}">${all.length?pct(ok/all.length):'–'}</b><span>réussite</span></div>
+    </div><h2 style="margin-top:16px">Réussite par partie</h2>${chart}</div>
+    <div class="box"><h2>Où ça coince</h2><div class="bars">${catHTML}</div></div>
+  </div>
+  <div class="box"><h2>Les nombres ratés le plus souvent</h2>${missHTML}</div>
+  <div class="box"><h2>Dernières parties</h2>${hist?`<div class="tablewrap"><table><thead><tr><th>Date</th><th>Niveau</th><th>Mode</th><th>Bien lus</th><th>Nombres ratés</th></tr></thead><tbody>${hist}</tbody></table></div>`:'<p class="empty">Aucune partie pour l\'instant.</p>'}</div>
+  <div class="box"><h2>Réglages</h2>
+    <div class="setrow"><label for="sMax">Niveaux ouverts pour Camélia</label><select id="sMax">${LEVELS.map(L=>`<option value="${L.n}" ${L.n===settings.maxLevel?'selected':''}>Jusqu'au niveau ${L.n} (${L.name})</option>`).join('')}</select></div>
+    <div class="setrow"><label for="sCol">Couleurs C / D / U</label><select id="sCol"><option value="auto" ${settings.colors==='auto'?'selected':''}>Auto (niveaux 1 à 3)</option><option value="on" ${settings.colors==='on'?'selected':''}>Toujours</option><option value="off" ${settings.colors==='off'?'selected':''}>Jamais</option></select></div>
+    <div class="setrow"><label for="sCode">Nouveau code (4 chiffres)</label><span style="display:flex;gap:8px"><input id="sCode" inputmode="numeric" maxlength="4" style="width:90px" placeholder="····"><button class="btn btn-ghost" id="sCodeBtn" style="padding:8px 16px">Changer</button></span></div>
+    <div class="setrow"><span><b>Effacer tout l'historique</b><br><span class="small">Supprime les parties enregistrées.</span></span><span id="resetZone"><button class="btn btn-ghost" id="reset" style="padding:8px 16px">Effacer</button></span></div>
+    <p class="small" id="setMsg" style="margin:8px 0 0" aria-live="polite"></p>
+  </div>`;
+  $('back').onclick=()=>{ renderLevels(); show('home'); };
+  $('sMax').onchange=e=>{ settings.maxLevel=+e.target.value; settings.level=Math.min(settings.level,settings.maxLevel); if(settings.level<settings.maxLevel) settings.level=settings.maxLevel; saveSettings(); renderLevels(); renderAdult(); };
+  $('sCol').onchange=e=>{ settings.colors=e.target.value; saveSettings(); $('setMsg').textContent='Réglage enregistré.'; };
+  $('sCodeBtn').onclick=()=>{ const v=$('sCode').value.trim(); if(/^\d{4}$/.test(v)){ LS.set('jdc.code',v); if(sheetOn()) post({type:'settings',settings:{code:v}}).catch(()=>{}); $('setMsg').textContent='Nouveau code enregistré.'; $('sCode').value=''; } else $('setMsg').textContent='Le code doit faire exactement 4 chiffres.'; };
+  $('reset').onclick=()=>{
+    $('resetZone').innerHTML='<span style="display:flex;gap:8px"><button class="btn btn-no" id="rYes" style="padding:8px 14px">Oui, effacer</button><button class="btn btn-ghost" id="rNo" style="padding:8px 14px">Annuler</button></span>';
+    $('rNo').onclick=renderAdult;
+    $('rYes').onclick=async()=>{ sessions=[]; pending=[]; LS.set('jdc.sessions',[]); LS.set('jdc.pending',[]); if(sheetOn()){ try{ await post({type:'reset'}); }catch(e){} } renderAdult(); };
+  };
+}
+
+/* ================= démarrage ================= */
+renderLevels();
+loadSheet();
+flush();
+</script>
+
+</body>
+</html>
